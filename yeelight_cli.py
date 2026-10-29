@@ -22,7 +22,7 @@ def show_version():
 def show_usage():
     print(f"""Usage:
 1. Discover YeeLight bulbs over LAN.
-  yeelight scan
+  yeelight scan [--timeout=2] [--interface=eth0]
 2: Register a bulb in ~/yeelight/config.ini
   yeelight config [OPTIONS]
 3: Set default bulb
@@ -35,6 +35,7 @@ def show_usage():
 MISC:
     --help,-h        print usage
     --version,-v     print version
+
 OPTIONS:
     --name           monitor-light
     --ip             192.168.1.5
@@ -67,6 +68,9 @@ PARAMS:
 
 For bulb methods and parameters, see
 https://yeelight.readthedocs.io/en/latest/yeelight.html
+
+For more exampels, see README.md
+
 """)
 
 def clean_path(path):
@@ -136,7 +140,9 @@ def parse_args(args):
         if arg.startswith('--'):
             opt = arg[2:]
             if '=' in opt:
-                key, value = opt.split('=', 1)
+                eq_index = opt.find('=')
+                key = opt[:eq_index]
+                value = opt[eq_index + 1:]
                 if value.isdigit():
                     value = int(value)
                 elif value.lower() == 'true':
@@ -144,6 +150,8 @@ def parse_args(args):
                 elif value.lower() == 'false':
                     value = False
                 kwargs[key] = value
+            elif opt == 'help' or opt == 'version':
+                pass
             else:
                 print("Invalid argument format. Use --key=value.")
                 sys.exit(1)
@@ -179,7 +187,7 @@ def main():
         sys.exit(0)
 
     # Extract target device name variable early
-    target_name = kwargs.pop('name', None)
+    target_name = kwargs.get('name', None)
 
     if positionals[0] == 'config':
         # Usage 2: read and print the current configuration
@@ -240,6 +248,9 @@ def main():
         if not inspect.ismethod(method):
             print(f"Current state/property value: {method}")
             sys.exit(0)
+
+        if (method_name != 'set_name') and ('name' in kwargs):
+            kwargs.pop('name', None)
 
         result = method(**kwargs)
         if result is not None:
